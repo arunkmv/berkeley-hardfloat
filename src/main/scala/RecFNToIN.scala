@@ -41,10 +41,10 @@ import Chisel._
 import scala.math._
 import consts._
 
-class RecFNToIN(expWidth: Int, sigWidth: Int, intWidth: Int) extends chisel3.RawModule
+class FNToINCore(expWidth: Int, sigWidth: Int, intWidth: Int) extends chisel3.RawModule
 {
     val io = IO(new Bundle {
-        val in = Bits(INPUT, expWidth + sigWidth + 1)
+        val in = new RawFloat(expWidth, sigWidth).asInput
         val roundingMode = UInt(INPUT, 3)
         val signedOut = Bool(INPUT)
         val out = Bits(OUTPUT, intWidth)
@@ -53,7 +53,7 @@ class RecFNToIN(expWidth: Int, sigWidth: Int, intWidth: Int) extends chisel3.Raw
 
     //------------------------------------------------------------------------
     //------------------------------------------------------------------------
-    val rawIn = rawFloatFromRecFN(expWidth, sigWidth, io.in)
+    val rawIn = io.in
 
     val magGeOne = rawIn.sExp(expWidth)
     val posExp = rawIn.sExp(expWidth - 1, 0)
@@ -143,3 +143,44 @@ class RecFNToIN(expWidth: Int, sigWidth: Int, intWidth: Int) extends chisel3.Raw
     io.intExceptionFlags := Cat(invalidExc, overflow, inexact)
 }
 
+class FNToIN(expWidth: Int, sigWidth: Int, intWidth: Int) extends chisel3.RawModule
+{
+    val io = IO(new Bundle {
+        val in = Bits(INPUT, expWidth + sigWidth)
+        val roundingMode = UInt(INPUT, 3)
+        val signedOut = Bool(INPUT)
+        val out = Bits(OUTPUT, intWidth)
+        val intExceptionFlags = Bits(OUTPUT, 3)
+    })
+
+    //------------------------------------------------------------------------
+    //------------------------------------------------------------------------
+    val rawIn = rawFloatFromFN(expWidth, sigWidth, io.in)
+    val fNToINCore = Module(new FNToINCore(expWidth, sigWidth, intWidth))
+    fNToINCore.io.in           := rawIn
+    fNToINCore.io.roundingMode := io.roundingMode
+    fNToINCore.io.signedOut    := io.signedOut
+    io.out                     := fNToINCore.io.out
+    io.intExceptionFlags       := fNToINCore.io.intExceptionFlags
+}
+
+class RecFNToIN(expWidth: Int, sigWidth: Int, intWidth: Int) extends chisel3.RawModule
+{
+    val io = IO(new Bundle {
+        val in = Bits(INPUT, expWidth + sigWidth + 1)
+        val roundingMode = UInt(INPUT, 3)
+        val signedOut = Bool(INPUT)
+        val out = Bits(OUTPUT, intWidth)
+        val intExceptionFlags = Bits(OUTPUT, 3)
+    })
+
+    //------------------------------------------------------------------------
+    //------------------------------------------------------------------------
+    val rawIn = rawFloatFromRecFN(expWidth, sigWidth, io.in)
+    val fNToINCore = Module(new FNToINCore(expWidth, sigWidth, intWidth))
+    fNToINCore.io.in           := rawIn
+    fNToINCore.io.roundingMode := io.roundingMode
+    fNToINCore.io.signedOut    := io.signedOut
+    io.out                     := fNToINCore.io.out
+    io.intExceptionFlags       := fNToINCore.io.intExceptionFlags
+}
