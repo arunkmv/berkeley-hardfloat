@@ -1,3 +1,10 @@
 project/target
 target
 test_run_dir
+
+# Metals specific
+.bloop/
+.metals/
+project/.bloop/
+project/metals.sbt
+project/project/
